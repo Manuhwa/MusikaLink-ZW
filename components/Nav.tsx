@@ -9,6 +9,8 @@ const links = [
   { href: "/ussd-demo", label: "Farmer USSD" },
   { href: "/agent-dashboard", label: "Agent" },
   { href: "/buyer", label: "Buyer" },
+  { href: "/prices", label: "Prices & Safety" },
+  { href: "/compliance", label: "Compliance" },
   { href: "/how-it-works", label: "How it works" },
 ];
 
@@ -28,17 +30,19 @@ export function Nav() {
           </span>
         </Link>
 
-        <nav className="hidden md:flex items-center gap-1">
+        <nav className="hidden lg:flex items-center gap-1 flex-wrap justify-end">
           {links.map((l) => {
             const active =
               l.href === "/"
                 ? pathname === "/"
-                : pathname.startsWith(l.href);
+                : l.href === "/prices"
+                  ? pathname.startsWith("/prices") || pathname.startsWith("/safety")
+                  : pathname.startsWith(l.href);
             return (
               <Link
                 key={l.href}
                 href={l.href}
-                className={`rounded-full px-3 py-1.5 text-sm font-semibold transition-colors ${
+                className={`rounded-full px-2.5 py-1.5 text-sm font-semibold transition-colors ${
                   active
                     ? "bg-musika-blue text-white"
                     : "text-musika-blue hover:bg-musika-blue/10"
@@ -52,7 +56,7 @@ export function Nav() {
 
         <button
           type="button"
-          className="md:hidden rounded-lg p-2 text-musika-blue hover:bg-musika-blue/10"
+          className="lg:hidden rounded-lg p-2 text-musika-blue hover:bg-musika-blue/10"
           aria-label="Menu"
           onClick={() => setOpen((o) => !o)}
         >
@@ -67,12 +71,14 @@ export function Nav() {
       </div>
 
       {open && (
-        <nav className="md:hidden border-t border-musika-blue/10 bg-white px-4 py-3 flex flex-col gap-1">
+        <nav className="lg:hidden border-t border-musika-blue/10 bg-white px-4 py-3 flex flex-col gap-1">
           {links.map((l) => {
             const active =
               l.href === "/"
                 ? pathname === "/"
-                : pathname.startsWith(l.href);
+                : l.href === "/prices"
+                  ? pathname.startsWith("/prices") || pathname.startsWith("/safety")
+                  : pathname.startsWith(l.href);
             return (
               <Link
                 key={l.href}

@@ -5,11 +5,14 @@ import {
   BUYERS,
   CROPS,
   GRADES,
+  VERIFIED_TILLS,
+  VERIFIED_WARD_PRICES,
   WARDS,
   agentForWard,
   cropName,
   cropUnit,
   formatUsd,
+  lookupVerifiedTill,
   makeCustomCrop,
   midPrice,
   newTradeId,
@@ -19,7 +22,7 @@ import {
   type Trade,
   type Ward,
 } from "@/lib/data";
-import { upsertTrade } from "@/lib/store";
+import { addChecklistOutcome, upsertTrade } from "@/lib/store";
 
 type Step =
   | "idle"
@@ -36,7 +39,12 @@ type Step =
   | "escrow"
   | "payment"
   | "done"
-  | "my_listings";
+  | "my_listings"
+  | "safety_menu"
+  | "safety_prices"
+  | "safety_till"
+  | "safety_tip"
+  | "compliance_tips";
 
 const CUSTOM_PRESETS = [
   { en: "Sweet potato", sn: "Batata" },
@@ -49,6 +57,7 @@ const copy = {
     dialHint: "Dial *288# on a feature phone",
     start: "Dial *288#",
     reset: "End session",
+    clear: "Clear",
     network: "Econet",
     ussdTitle: "MusikaLink ZW",
     welcome: "Welcome to MusikaLink ZW",
@@ -56,7 +65,27 @@ const copy = {
     main2: "2. Check my listings",
     main3: "3. Register / profile",
     main4: "4. Help",
+    main5: "5. Prices & pay safety",
     main0: "0. Exit",
+    safetyMenu: "Prices & pay safety",
+    safety1: "1. View verified prices",
+    safety2: "2. Check till before pay",
+    safety3: "3. Safety tip",
+    safety4: "4. Compliance tips",
+    safetyBack: "0. Back",
+    pickPriceWard: "Ward for prices:",
+    verifiedBadge: "verified local",
+    tillPrompt: "Enter till / merchant #:",
+    tillDemo: "Or try: 1=verified 2=unknown",
+    tillOk: "VERIFIED till",
+    tillBad: "UNKNOWN till — pause",
+    tipFlash: "Tip: pause on urgency. Prefer EcoCash/OneMoney/Telecash verified tills. Demo only.",
+    complianceTitle: "Compliance tips (edu)",
+    compliance1: "1. Record date/product/grade/qty/price/buyer",
+    compliance2: "2. Agree weights & grades",
+    compliance3: "3. Prefer markets / ward hubs",
+    compliance4: "4. Keep SMS / till proof",
+    complianceNote: "Not legal advice. By-laws vary.",
     regName: "Enter name (or 1=Tendai Moyo):",
     regPhone: "EcoCash number:",
     regOk: "Profile saved.",
@@ -97,6 +126,7 @@ const copy = {
     dialHint: "Dhaira *288# pafoni",
     start: "Dhaira *288#",
     reset: "Pedza",
+    clear: "Bvisa",
     network: "Econet",
     ussdTitle: "MusikaLink ZW",
     welcome: "Titambire kuMusikaLink ZW",
@@ -104,7 +134,27 @@ const copy = {
     main2: "2. Tarisa zvandanyora",
     main3: "3. Register / profile",
     main4: "4. Rubatsiro",
+    main5: "5. Mitengo & kuchengetedza",
     main0: "0. Buda",
+    safetyMenu: "Mitengo & kuchengetedza",
+    safety1: "1. Tarisa mitengo yakasimbiswa",
+    safety2: "2. Tarisa till usati wabhadhara",
+    safety3: "3. Zano rekuchengetedza",
+    safety4: "4. Compliance tips",
+    safetyBack: "0. Dzokera",
+    pickPriceWard: "Wodhi yemitengo:",
+    verifiedBadge: "yakasimbiswa",
+    tillPrompt: "Isa nhamba ye-till:",
+    tillDemo: "Kana: 1=verified 2=unknown",
+    tillOk: "Till YAKASIMBISWA",
+    tillBad: "Till ISINA KUZIVIKANWA",
+    tipFlash: "Zano: usakurumidza. Shandisa tills dzakasimbiswa. Demo chete.",
+    complianceTitle: "Compliance tips (edu)",
+    compliance1: "1. Nyora zuva/product/grade/qty/price/buyer",
+    compliance2: "2. Bvumirana zviyero & grades",
+    compliance3: "3. Sarudza misika / ward hubs",
+    compliance4: "4. Chengeta SMS / till proof",
+    complianceNote: "Hasi zano remutemo. By-laws dzinosiyana.",
     regName: "Isa zita (kana 1=Tendai Moyo):",
     regPhone: "Nhamba yeEcoCash:",
     regOk: "Profile yakachengetwa.",
@@ -171,8 +221,11 @@ export function UssdSimulator() {
   const [tradeId, setTradeId] = useState<string | null>(null);
   const [regMode, setRegMode] = useState<"name" | "phone">("name");
   const [myIds, setMyIds] = useState<string[]>([]);
+  const [safetyWard, setSafetyWard] = useState<Ward>("Madziwa");
 
   const t = copy[lang];
+  const textMode =
+    step === "custom_name" || (step === "register" && regMode === "name");
 
   const matchedBuyers = useMemo(() => {
     if (!ward) return BUYERS.slice(0, 3);
@@ -258,6 +311,7 @@ export function UssdSimulator() {
           t.main2,
           t.main3,
           t.main4,
+          t.main5,
           t.main0,
         ].filter((x, i, a) => x !== "" || (i > 0 && a[i - 1] !== ""));
       case "register":
@@ -382,6 +436,59 @@ export function UssdSimulator() {
           "1. New listing",
           "0. Exit",
         ];
+      case "safety_menu":
+        return [
+          t.safetyMenu,
+          "",
+          t.safety1,
+          t.safety2,
+          t.safety3,
+          t.safety4,
+          t.safetyBack,
+        ];
+      case "safety_prices": {
+        const rows = VERIFIED_WARD_PRICES.filter((r) => r.ward === safetyWard).slice(0, 3);
+        return [
+          `${t.verifiedBadge} · ${safetyWard}`,
+          "Demo · AGRITEX-style",
+          "",
+          ...rows.map(
+            (r) =>
+              `${r.productName}: A ${formatUsd(r.gradeA)} B ${formatUsd(r.gradeB)}`
+          ),
+          rows.length === 0 ? "(no rows)" : "",
+          "",
+          t.pickPriceWard,
+          ...WARDS.map((w, i) => `${i + 1}. ${w}`),
+          "9. Check till →",
+          t.safetyBack,
+        ].filter((x, i, a) => x !== "" || (i > 0 && a[i - 1] !== ""));
+      }
+      case "safety_till":
+        return [
+          t.tillPrompt,
+          "",
+          t.tillDemo,
+          `1. ${VERIFIED_TILLS[0].number}`,
+          "2. 0772999888 (unknown)",
+          "",
+          t.safetyBack,
+        ];
+      case "safety_tip":
+        return [t.tipFlash, "", "1. Check till", "2. Compliance tips", t.safetyBack];
+      case "compliance_tips":
+        return [
+          t.complianceTitle,
+          "",
+          t.compliance1,
+          t.compliance2,
+          t.compliance3,
+          t.compliance4,
+          "",
+          t.complianceNote,
+          "",
+          t.safetyBack,
+        ];
       case "my_listings":
         return myIds.length
           ? ["Your listings:", "", ...myIds.map((id, i) => `${i + 1}. ${id}`), "", t.back]
@@ -410,6 +517,7 @@ export function UssdSimulator() {
     regMode,
     tradeId,
     myIds,
+    safetyWard,
   ]);
 
   function showFlash(msg: string) {
@@ -446,6 +554,7 @@ export function UssdSimulator() {
           setRegMode("name");
           setStep("register");
         } else if (val === "4") showFlash(t.help);
+        else if (val === "5") setStep("safety_menu");
         else if (val === "0") reset();
         else showFlash(t.invalid);
         break;
@@ -704,6 +813,77 @@ export function UssdSimulator() {
         else showFlash(t.invalid);
         break;
 
+      case "safety_menu":
+        if (val === "1") setStep("safety_prices");
+        else if (val === "2") setStep("safety_till");
+        else if (val === "3") setStep("safety_tip");
+        else if (val === "4") setStep("compliance_tips");
+        else if (val === "0") setStep("main");
+        else showFlash(t.invalid);
+        break;
+
+      case "safety_prices":
+        if (val === "0") {
+          setStep("safety_menu");
+          break;
+        }
+        if (val === "9") {
+          setStep("safety_till");
+          break;
+        }
+        {
+          const idx = parseInt(val, 10) - 1;
+          if (idx >= 0 && idx < WARDS.length) {
+            setSafetyWard(WARDS[idx]);
+          } else showFlash(t.invalid);
+        }
+        break;
+
+      case "safety_till": {
+        if (val === "0") {
+          setStep("safety_menu");
+          break;
+        }
+        let raw = val;
+        if (val === "1") raw = VERIFIED_TILLS[0].number;
+        else if (val === "2") raw = "0772999888";
+        const match = lookupVerifiedTill(raw);
+        const tillStatus = match ? "verified" : "unknown";
+        addChecklistOutcome({
+          id: `CK-${Date.now().toString().slice(-8)}`,
+          at: new Date().toISOString(),
+          tillInput: raw,
+          tillStatus,
+          matchedTillId: match?.id,
+          pressureFlagged: false,
+          note: "ussd",
+        });
+        if (match) {
+          showFlash(
+            `${t.tillOk}\n${match.label}\n${match.network} · ${match.ward}`
+          );
+        } else {
+          showFlash(`${t.tillBad}\n${raw}`);
+        }
+        setTimeout(() => {
+          setFlash(null);
+          setStep("safety_tip");
+        }, 1500);
+        break;
+      }
+
+      case "safety_tip":
+        if (val === "1") setStep("safety_till");
+        else if (val === "2") setStep("compliance_tips");
+        else if (val === "0") setStep("safety_menu");
+        else showFlash(t.invalid);
+        break;
+
+      case "compliance_tips":
+        if (val === "0") setStep("safety_menu");
+        else showFlash(t.invalid);
+        break;
+
       case "my_listings":
         if (val === "0") setStep("main");
         else showFlash(t.invalid);
@@ -719,7 +899,11 @@ export function UssdSimulator() {
       setStep("main");
       return;
     }
-    setInput((prev) => (prev + digit).slice(0, 12));
+    setInput((prev) => (prev + digit).slice(0, textMode ? 32 : 12));
+  }
+
+  function textKey(value: string) {
+    setInput((prev) => (prev + value).slice(0, 32));
   }
 
   return (
@@ -744,10 +928,7 @@ export function UssdSimulator() {
               <input
                 value={input}
                 onChange={(e) => {
-                  const allowText =
-                    step === "custom_name" ||
-                    (step === "register" && regMode === "name");
-                  const next = allowText
+                  const next = textMode
                     ? e.target.value.slice(0, 32)
                     : e.target.value.replace(/[^\d]/g, "").slice(0, 12);
                   setInput(next);
@@ -773,6 +954,26 @@ export function UssdSimulator() {
               />
               <button
                 type="button"
+                onClick={() => setInput("")}
+                disabled={step === "payment"}
+                aria-label={t.clear}
+                title={t.clear}
+                className="rounded-md bg-slate-700 px-2 py-2 text-[10px] font-bold text-slate-200 hover:bg-slate-600 disabled:opacity-40"
+              >
+                CLR
+              </button>
+              <button
+                type="button"
+                onClick={() => setInput((prev) => prev.slice(0, -1))}
+                disabled={step === "payment"}
+                aria-label="Backspace"
+                title="Backspace"
+                className="rounded-md bg-slate-700 px-2 py-2 text-sm font-bold text-slate-200 hover:bg-slate-600 disabled:opacity-40"
+              >
+                ⌫
+              </button>
+              <button
+                type="button"
                 onClick={() => submit()}
                 disabled={step === "payment"}
                 className="rounded-md bg-musika-gold px-3 py-2 text-xs font-bold text-musika-blue-dark hover:bg-musika-gold-light disabled:opacity-40"
@@ -783,18 +984,65 @@ export function UssdSimulator() {
 
             <div className="grid grid-cols-3 gap-1.5 p-3 bg-slate-900">
               {["1", "2", "3", "4", "5", "6", "7", "8", "9", "*", "0", "#"].map(
-                (d) => (
-                  <button
-                    key={d}
-                    type="button"
-                    onClick={() => softKey(d)}
-                    className="rounded-lg bg-slate-800 py-3 font-mono text-lg text-white hover:bg-slate-700 active:bg-slate-600"
-                  >
-                    {d}
-                  </button>
-                )
+                (d) => {
+                  const hint =
+                    d === "2"
+                      ? "ABC"
+                      : d === "3"
+                        ? "DEF"
+                        : d === "4"
+                          ? "GHI"
+                          : d === "5"
+                            ? "JKL"
+                            : d === "6"
+                              ? "MNO"
+                              : d === "7"
+                                ? "PQRS"
+                                : d === "8"
+                                  ? "TUV"
+                                  : d === "9"
+                                    ? "WXYZ"
+                                    : "";
+                  return (
+                    <button
+                      key={d}
+                      type="button"
+                      onClick={() => softKey(d)}
+                      className="rounded-lg bg-slate-800 py-2 font-mono text-lg leading-none text-white hover:bg-slate-700 active:bg-slate-600"
+                    >
+                      <span className="block">{d}</span>
+                      {hint && (
+                        <span className="block pt-1 text-[9px] tracking-[0.18em] text-slate-400">
+                          {hint}
+                        </span>
+                      )}
+                    </button>
+                  );
+                }
               )}
             </div>
+
+            {textMode && (
+              <div className="grid grid-cols-6 gap-1 px-3 pb-3 bg-slate-900">
+                {"ABCDEFGHIJKLMNOPQRSTUVWXYZ".split("").map((letter) => (
+                  <button
+                    key={letter}
+                    type="button"
+                    onClick={() => textKey(letter)}
+                    className="rounded-md bg-slate-800 py-1.5 font-mono text-xs font-bold text-white hover:bg-slate-700 active:bg-slate-600"
+                  >
+                    {letter}
+                  </button>
+                ))}
+                <button
+                  type="button"
+                  onClick={() => textKey(" ")}
+                  className="col-span-6 rounded-md bg-slate-800 py-1.5 font-mono text-xs font-bold text-white hover:bg-slate-700 active:bg-slate-600"
+                >
+                  Space
+                </button>
+              </div>
+            )}
 
             <div className="flex gap-2 p-3 pt-0 bg-slate-900">
               <button
@@ -840,13 +1088,17 @@ export function UssdSimulator() {
           <h3 className="font-display font-bold text-musika-blue">Booth flow</h3>
           <ol className="mt-3 space-y-2 text-sm text-slate-600 list-decimal list-inside">
             <li>Dial *288# (or tap Dial) → register if needed</li>
-            <li>1 → List produce → pick crop or <strong>6 Other</strong> (type name / keypad presets)</li>
+            <li>1 → List produce → pick crop or <strong>6 Other</strong> (type with letters; use Clear / CLR or letter keypad)</li>
             <li>Select grade A/B/C → quantity → ward (Madziwa, Bindura, Mazowe, Guruve, Mtoko)</li>
             <li>
               Review prices → <strong>2 List without match</strong> (agent alert) or pick a
               buyer → Accept → escrow
             </li>
-            <li>Open Agent / Buyer tabs — listing appears via shared localStorage</li>
+            <li>
+              <strong>5 Prices &amp; pay safety</strong> → view verified prices → check till → tip
+              / compliance
+            </li>
+            <li>Open Agent / Buyer / Prices &amp; Safety tabs — shared localStorage</li>
           </ol>
         </div>
 

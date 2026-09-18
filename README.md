@@ -2,7 +2,7 @@
 
 USSD-first farm-to-market marketplace demo for **POTRAZ Innovation EXPO 2026** (Zimbabwe).
 
-Smallholders list produce on feature phones (`*288#`), see local prices, match verified buyers, and get paid via mobile-money escrow — with ward aggregation agents to batch loads.
+Smallholders list produce on feature phones (`*288#`), see **verified local** ward prices, **check before you pay** (EcoCash / OneMoney / Telecash educational till check), follow **informal-trader compliance** tips, match verified buyers, and get paid via mobile-money escrow — with ward aggregation agents to batch loads.
 
 ## Live demo
 
@@ -28,7 +28,7 @@ npm start
 
 ## Deploy to Vercel (free)
 
-No paid services or API keys required. The demo stores all marketplace data in the browser (`localStorage` key `musikalink-zw-v1`).
+No paid services or API keys required. The demo stores all marketplace data in the browser (`localStorage` key `musikalink-zw-v2`).
 
 1. Push this repo to GitHub (or import the folder in the Vercel dashboard).
 2. In [vercel.com](https://vercel.com): **Add New Project** → import the repo.
@@ -42,18 +42,21 @@ Cross-role sync works on the **same browser** (and across tabs via `storage` + `
 | Path | Role | What it shows |
 |------|------|----------------|
 | `/` | — | Landing — problem / solution / CTAs |
-| `/ussd-demo` | Farmer | Interactive feature-phone USSD (EN ↔ Shona); listings persist to shared store |
+| `/ussd-demo` | Farmer | Interactive feature-phone USSD (EN ↔ Shona); option **5** = Prices & pay safety |
 | `/agent-dashboard` | Agent | Live alerts, ward/status filters, mark delivered, release escrow |
 | `/buyer` | Buyer | Browse lots, post demand, accept/match into escrow |
+| `/prices` (also `/safety`) | Farmer | Verified local ward prices + check-before-you-pay checklist |
+| `/compliance` | Trader / farmer | Informal procurement good practice (educational; not legal advice) |
 | `/how-it-works` | — | Agent linkage: farmer → ward → agent → delivery → escrow release |
 | `/api/health` | — | JSON health check (no secrets) |
 
-Nav: **Home | Farmer USSD | Agent | Buyer | How it works**.
+Nav: **Home | Farmer USSD | Agent | Buyer | Prices & Safety | Compliance | How it works**.
 
 ## Shared data store
 
-- Key: `musikalink-zw-v1`
+- Key: `musikalink-zw-v2`
 - Seeded with sample trades & demands on first load
+- Optional `checklistOutcomes` from USSD / web till checks
 - USSD “list without match” or “accept & escrow” writes a trade
 - Agent and Buyer subscribe to `storage` and custom `musikalink-updated` events
 
@@ -63,8 +66,9 @@ See `DEMO_SCRIPT.md` / `QUICKSTART.md`.
 
 1. Open **Farmer USSD** → Dial `*288#` → register → list produce.
 2. At prices: **2 List without match** (or pick a buyer → Accept).
-3. Open **Agent** (same browser / second tab) → live alert banner → Mark delivered → Release escrow.
-4. Open **Buyer** → browse available lots or post demand → Accept & escrow.
+3. Optionally **5 Prices & pay safety** → view prices → check till → tip.
+4. Open **Agent** (same browser / second tab) → live alert → Mark delivered → Release escrow.
+5. Open **Buyer** → browse lots or post demand; peek **Prices & Safety** / **Compliance**.
 
 ## Stack
 
@@ -74,5 +78,6 @@ See `DEMO_SCRIPT.md` / `QUICKSTART.md`.
 
 ## Notes
 
-- Demo / prototype only — no live USSD gateway or real EcoCash.
+- Demo / prototype only — no live USSD gateway or real EcoCash / OneMoney / Telecash integration.
+- Compliance content is educational guidance, not legal advice; local by-laws vary.
 - Pilot geography: Madziwa, Bindura, Mazowe, Guruve, Mtoko (Mashonaland Central storyline).

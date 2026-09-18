@@ -4,6 +4,7 @@ import { useCallback, useEffect, useState } from "react";
 import {
   SEED_DEMANDS,
   SEED_TRADES,
+  type ChecklistOutcome,
   type Demand,
   type Trade,
   type TradeStatus,
@@ -16,6 +17,8 @@ export type MusikaStore = {
   version: 2;
   trades: Trade[];
   demands: Demand[];
+  /** Optional “check before you pay” outcomes (educational demo) */
+  checklistOutcomes?: ChecklistOutcome[];
 };
 
 function seedStore(): MusikaStore {
@@ -23,6 +26,7 @@ function seedStore(): MusikaStore {
     version: 2,
     trades: SEED_TRADES.map((t) => ({ ...t })),
     demands: SEED_DEMANDS.map((d) => ({ ...d })),
+    checklistOutcomes: [],
   };
 }
 
@@ -40,6 +44,9 @@ function readStore(): MusikaStore {
       const seeded = seedStore();
       window.localStorage.setItem(STORAGE_KEY, JSON.stringify(seeded));
       return seeded;
+    }
+    if (!Array.isArray(parsed.checklistOutcomes)) {
+      parsed.checklistOutcomes = [];
     }
     return parsed;
   } catch {
@@ -134,6 +141,17 @@ export function matchListingToBuyer(
   });
 }
 
+export function addChecklistOutcome(outcome: ChecklistOutcome): MusikaStore {
+  const current = readStore();
+  const list = current.checklistOutcomes ?? [];
+  const next = {
+    ...current,
+    checklistOutcomes: [outcome, ...list].slice(0, 40),
+  };
+  writeStore(next);
+  return next;
+}
+
 export function resetStore(): MusikaStore {
   const seeded = seedStore();
   writeStore(seeded);
@@ -177,6 +195,7 @@ export function useMusikaStore() {
   return {
     trades: store.trades,
     demands: store.demands,
+    checklistOutcomes: store.checklistOutcomes ?? [],
     ready,
     refresh,
     upsertTrade,
@@ -184,6 +203,7 @@ export function useMusikaStore() {
     addDemand,
     patchDemand,
     matchListingToBuyer,
+    addChecklistOutcome,
     resetStore,
   };
 }

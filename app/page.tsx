@@ -58,6 +58,28 @@ const roles = [
     bodyClass: "text-slate-600",
     linkClass: "text-musika-blue",
   },
+  {
+    href: "/prices",
+    eyebrow: "Safety",
+    title: "Prices & pay safety",
+    body: "Ward-level verified local prices plus check-before-you-pay for EcoCash / OneMoney / Telecash tills. Educational demo — not a live bank link.",
+    style: "border-2 border-emerald-300 bg-emerald-50",
+    eyebrowClass: "text-emerald-800",
+    titleClass: "text-musika-blue",
+    bodyClass: "text-slate-600",
+    linkClass: "text-musika-blue",
+  },
+  {
+    href: "/compliance",
+    eyebrow: "Compliance",
+    title: "Informal trade tips",
+    body: "Simple sale records, agreed weights/grades, recognised markets, proof of sale — educational guidance for Zimbabwe informal traders.",
+    style: "border-2 border-musika-gold/50 bg-musika-cream",
+    eyebrowClass: "text-musika-gold-dark",
+    titleClass: "text-musika-blue",
+    bodyClass: "text-slate-600",
+    linkClass: "text-musika-blue",
+  },
 ];
 
 export default function HomePage() {
@@ -81,8 +103,9 @@ export default function HomePage() {
           <p className="mt-5 max-w-2xl text-lg text-blue-100 leading-relaxed">
             <strong className="text-white">MusikaLink ZW</strong> is a{" "}
             <strong className="text-musika-gold-light">USSD-first marketplace</strong> — list
-            produce, see real local prices, match verified buyers, and get paid through{" "}
-            mobile-money escrow, with village aggregation points that scale beyond one truck.
+            produce, see verified local prices, check tills before you pay, follow informal-trade
+            compliance tips, match verified buyers, and get paid through mobile-money escrow,
+            with village aggregation points that scale beyond one truck.
           </p>
           <div className="mt-8 flex flex-wrap gap-3">
             <Link
@@ -102,6 +125,18 @@ export default function HomePage() {
               className="inline-flex items-center justify-center rounded-full bg-white/10 px-6 py-3 font-display font-bold text-white ring-1 ring-white/30 hover:bg-white/20 transition-colors"
             >
               Buyer
+            </Link>
+            <Link
+              href="/prices"
+              className="inline-flex items-center justify-center rounded-full bg-white/10 px-6 py-3 font-display font-bold text-white ring-1 ring-white/30 hover:bg-white/20 transition-colors"
+            >
+              Prices &amp; Safety
+            </Link>
+            <Link
+              href="/compliance"
+              className="inline-flex items-center justify-center rounded-full bg-white/10 px-6 py-3 font-display font-bold text-white ring-1 ring-white/30 hover:bg-white/20 transition-colors"
+            >
+              Compliance
             </Link>
             <Link
               href="/how-it-works"
@@ -176,7 +211,7 @@ export default function HomePage() {
         <h2 className="font-display text-2xl sm:text-3xl font-bold text-musika-blue">
           Live booth demos
         </h2>
-        <div className="mt-6 grid gap-6 md:grid-cols-3">
+        <div className="mt-6 grid gap-6 sm:grid-cols-2 lg:grid-cols-3">
           {roles.map((r) => (
             <Link
               key={r.href}

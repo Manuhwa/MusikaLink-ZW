@@ -13,9 +13,10 @@ export default function UssdDemoPage() {
         <p className="mt-3 text-slate-600 leading-relaxed">
           Interactive mock of the MusikaLink short code. Register, list produce, see ward-level
           prices, accept a buyer match (or list without match), hold funds in escrow, then
-          confirm an EcoCash-style payout. Listings persist to the shared browser store so the{" "}
-          <strong>Agent</strong> and <strong>Buyer</strong> pages update live. Toggle English ↔
-          Shona for booth visitors.
+          confirm an EcoCash-style payout. Menu <strong>5</strong> covers verified prices, till
+          check, and compliance tips. Listings persist to the shared browser store so{" "}
+          <strong>Agent</strong>, <strong>Buyer</strong>, and <strong>Prices &amp; Safety</strong>{" "}
+          update live. Toggle English ↔ Shona for booth visitors.
         </p>
       </div>
       <UssdSimulator />

@@ -449,3 +449,262 @@ export function newTradeId(): string {
 export function newDemandId(): string {
   return `DM-${Date.now().toString().slice(-5)}`;
 }
+
+/** Demo ward bulletins — indicative “verified local” prices (Mashonaland Central). */
+export type WardPriceRow = {
+  ward: Ward;
+  cropId: string;
+  productName: string;
+  unit: string;
+  gradeA: number;
+  gradeB: number;
+  gradeC: number;
+  asOf: string;
+  sourceLabel: string;
+};
+
+export const VERIFIED_WARD_PRICES: WardPriceRow[] = [
+  {
+    ward: "Madziwa",
+    cropId: "maize",
+    productName: "Maize",
+    unit: "50kg bag",
+    gradeA: 10.5,
+    gradeB: 9.2,
+    gradeC: 7.8,
+    asOf: "2026-09-15",
+    sourceLabel: "Demo · AGRITEX-style ward bulletin",
+  },
+  {
+    ward: "Madziwa",
+    cropId: "groundnuts",
+    productName: "Groundnuts",
+    unit: "bucket",
+    gradeA: 15.0,
+    gradeB: 13.5,
+    gradeC: 11.0,
+    asOf: "2026-09-15",
+    sourceLabel: "Demo · AGRITEX-style ward bulletin",
+  },
+  {
+    ward: "Bindura",
+    cropId: "maize",
+    productName: "Maize",
+    unit: "50kg bag",
+    gradeA: 10.8,
+    gradeB: 9.5,
+    gradeC: 8.0,
+    asOf: "2026-09-16",
+    sourceLabel: "Demo · AGRITEX-style ward bulletin",
+  },
+  {
+    ward: "Bindura",
+    cropId: "tomatoes",
+    productName: "Tomatoes",
+    unit: "crate",
+    gradeA: 8.2,
+    gradeB: 7.0,
+    gradeC: 5.5,
+    asOf: "2026-09-16",
+    sourceLabel: "Demo · AGRITEX-style ward bulletin",
+  },
+  {
+    ward: "Mazowe",
+    cropId: "tomatoes",
+    productName: "Tomatoes",
+    unit: "crate",
+    gradeA: 8.5,
+    gradeB: 7.2,
+    gradeC: 5.8,
+    asOf: "2026-09-16",
+    sourceLabel: "Demo · AGRITEX-style ward bulletin",
+  },
+  {
+    ward: "Mazowe",
+    cropId: "beans",
+    productName: "Beans",
+    unit: "15kg bag",
+    gradeA: 16.5,
+    gradeB: 15.0,
+    gradeC: 13.0,
+    asOf: "2026-09-16",
+    sourceLabel: "Demo · AGRITEX-style ward bulletin",
+  },
+  {
+    ward: "Guruve",
+    cropId: "maize",
+    productName: "Maize",
+    unit: "50kg bag",
+    gradeA: 9.8,
+    gradeB: 8.8,
+    gradeC: 7.5,
+    asOf: "2026-09-14",
+    sourceLabel: "Demo · AGRITEX-style ward bulletin",
+  },
+  {
+    ward: "Guruve",
+    cropId: "cabbage",
+    productName: "Cabbage",
+    unit: "head",
+    gradeA: 0.6,
+    gradeB: 0.5,
+    gradeC: 0.35,
+    asOf: "2026-09-14",
+    sourceLabel: "Demo · AGRITEX-style ward bulletin",
+  },
+  {
+    ward: "Mtoko",
+    cropId: "cabbage",
+    productName: "Cabbage",
+    unit: "head",
+    gradeA: 0.55,
+    gradeB: 0.45,
+    gradeC: 0.3,
+    asOf: "2026-09-15",
+    sourceLabel: "Demo · AGRITEX-style ward bulletin",
+  },
+  {
+    ward: "Mtoko",
+    cropId: "groundnuts",
+    productName: "Groundnuts",
+    unit: "bucket",
+    gradeA: 14.5,
+    gradeB: 13.0,
+    gradeC: 10.5,
+    asOf: "2026-09-15",
+    sourceLabel: "Demo · AGRITEX-style ward bulletin",
+  },
+];
+
+export type VerifiedTill = {
+  id: string;
+  label: string;
+  /** Digits only for matching (spaces stripped on check) */
+  number: string;
+  network: "EcoCash" | "OneMoney" | "Telecash";
+  buyerName: string;
+  ward: Ward;
+};
+
+/** Small allowlist of verified buyer tills — educational demo only. */
+export const VERIFIED_TILLS: VerifiedTill[] = [
+  {
+    id: "t1",
+    label: "Bindura Millers Co-op",
+    number: "0772100201",
+    network: "EcoCash",
+    buyerName: "Bindura Millers Co-op",
+    ward: "Bindura",
+  },
+  {
+    id: "t2",
+    label: "Madziwa School Feeding",
+    number: "0773220110",
+    network: "EcoCash",
+    buyerName: "Madziwa School Feeding",
+    ward: "Madziwa",
+  },
+  {
+    id: "t3",
+    label: "Mazowe Fresh Traders",
+    number: "0712445880",
+    network: "OneMoney",
+    buyerName: "Mazowe Fresh Traders",
+    ward: "Mazowe",
+  },
+  {
+    id: "t4",
+    label: "Guruve Agro Dealers",
+    number: "0733991040",
+    network: "Telecash",
+    buyerName: "Guruve Agro Dealers",
+    ward: "Guruve",
+  },
+  {
+    id: "t5",
+    label: "Mtoko Market Hub",
+    number: "0782334567",
+    network: "EcoCash",
+    buyerName: "Mtoko Market Hub",
+    ward: "Mtoko",
+  },
+];
+
+/** Urgency / pressure language samples for “check before you pay” education. */
+export const PRESSURE_SAMPLES = [
+  {
+    id: "p1",
+    text: "Pay NOW or the price drops — only 10 minutes left!",
+    flag: "Urgency pressure",
+    tip: "Pause. Verified buyers do not force instant till payments without a written deal.",
+  },
+  {
+    id: "p2",
+    text: "Send to this new EcoCash number — our old till is broken today.",
+    flag: "Unknown / switched till",
+    tip: "Check the till against the MusikaLink verified list before you pay.",
+  },
+  {
+    id: "p3",
+    text: "Don't tell anyone — secret buyer deal, cash only to my personal phone.",
+    flag: "Secrecy + personal wallet",
+    tip: "Prefer recognised markets, ward hubs, and named buyer tills.",
+  },
+  {
+    id: "p4",
+    text: "Police / council will seize your stock unless you pay this fine till now.",
+    flag: "Threat / fake authority",
+    tip: "Official fees go through known channels — verify with your ward agent.",
+  },
+] as const;
+
+export type ChecklistOutcome = {
+  id: string;
+  at: string;
+  tillInput: string;
+  tillStatus: "verified" | "unknown" | "empty";
+  matchedTillId?: string;
+  pressureFlagged: boolean;
+  pressureSampleId?: string;
+  note?: string;
+};
+
+export function normalizeTillDigits(raw: string): string {
+  return raw.replace(/\D/g, "");
+}
+
+export function lookupVerifiedTill(raw: string): VerifiedTill | undefined {
+  const digits = normalizeTillDigits(raw);
+  if (digits.length < 7) return undefined;
+  return VERIFIED_TILLS.find((t) => {
+    const n = normalizeTillDigits(t.number);
+    return n === digits || n.endsWith(digits) || digits.endsWith(n);
+  });
+}
+
+/** Educational compliance tips for informal traders / farmers (ZW). */
+export const COMPLIANCE_TIPS = [
+  {
+    id: "c1",
+    title: "Keep a simple sale record",
+    body: "Note date, product, grade, quantity, unit price, total, and buyer name/phone. A notebook or SMS to yourself counts.",
+  },
+  {
+    id: "c2",
+    title: "Use agreed weights and grades",
+    body: "Agree the scale and Grade A/B/C (or local equivalent) before loading. Disputes drop when both sides see the same measure.",
+  },
+  {
+    id: "c3",
+    title: "Prefer recognised markets / ward hubs",
+    body: "Sell at known markets or ward aggregation points when you can — clearer prices, witnesses, and safer payment trails.",
+  },
+  {
+    id: "c4",
+    title: "Keep proof of sale",
+    body: "Keep the SMS receipt, till confirmation, or a signed note. Helps with follow-ups and shows you traded in good faith.",
+  },
+] as const;
+
+export const COMPLIANCE_DISCLAIMER =
+  "Educational guidance only — not legal advice. Local by-laws, market rules, and licensing requirements vary by council and ward. Check with your local authority or ward agent when unsure.";
