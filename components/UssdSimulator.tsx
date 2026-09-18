@@ -4,14 +4,17 @@ import { useCallback, useMemo, useState } from "react";
 import {
   BUYERS,
   CROPS,
+  GRADES,
   WARDS,
   agentForWard,
   cropName,
   cropUnit,
   formatUsd,
+  makeCustomCrop,
   midPrice,
   newTradeId,
   type Crop,
+  type Grade,
   type Lang,
   type Trade,
   type Ward,
@@ -23,6 +26,8 @@ type Step =
   | "main"
   | "register"
   | "crop"
+  | "custom_name"
+  | "grade"
   | "qty"
   | "ward"
   | "prices"
@@ -32,6 +37,12 @@ type Step =
   | "payment"
   | "done"
   | "my_listings";
+
+const CUSTOM_PRESETS = [
+  { en: "Sweet potato", sn: "Batata" },
+  { en: "Onions", sn: "Hanyanisi" },
+  { en: "Cowpeas", sn: "Nyimo" },
+] as const;
 
 const copy = {
   en: {
@@ -70,7 +81,14 @@ const copy = {
     ref: "Ref",
     thankYou: "Thank you. SMS receipt sent.",
     invalid: "Invalid option. Try again.",
-    grade: "Grade A assumed",
+    otherProduct: "6. Other / custom product",
+    enterCustom: "Enter product name:",
+    customHint: "Or pick: 1=Sweet potato 2=Onions 3=Cowpeas",
+    pickGrade: "Select grade:",
+    gradeA: "1. Grade A (Good)",
+    gradeB: "2. Grade B (Fair)",
+    gradeC: "3. Grade C (Poor)",
+    gradeLabel: "Grade",
     agent: "Ward agent notified",
     noListings: "No active listings.",
     help: "Help: *288# · EcoCash escrow · EN/SN",
@@ -111,7 +129,14 @@ const copy = {
     ref: "Ref",
     thankYou: "Ndatenda. SMS yarehwa.",
     invalid: "Hazvina kukwana. Edza zvakare.",
-    grade: "Giredhi A",
+    otherProduct: "6. Chimwe / custom",
+    enterCustom: "Isa zita rechirimwa:",
+    customHint: "Kana: 1=Batata 2=Hanyanisi 3=Nyimo",
+    pickGrade: "Sarudza giredhi:",
+    gradeA: "1. Giredhi A (Yakanaka)",
+    gradeB: "2. Giredhi B (Pakati)",
+    gradeC: "3. Giredhi C (Yakaipa)",
+    gradeLabel: "Giredhi",
     agent: "Agent wewodhi aziviswa",
     noListings: "Hapana listing ichiri.",
     help: "Batsira: *288# · EcoCash escrow",
@@ -134,6 +159,8 @@ export function UssdSimulator() {
   const [input, setInput] = useState("");
   const [flash, setFlash] = useState<string | null>(null);
   const [crop, setCrop] = useState<Crop | null>(null);
+  const [productName, setProductName] = useState("");
+  const [grade, setGrade] = useState<Grade>("A");
   const [qty, setQty] = useState(0);
   const [ward, setWard] = useState<Ward | null>(null);
   const [buyerIdx, setBuyerIdx] = useState(0);
@@ -171,6 +198,8 @@ export function UssdSimulator() {
     setInput("");
     setFlash(null);
     setCrop(null);
+    setProductName("");
+    setGrade("A");
     setQty(0);
     setWard(null);
     setBuyerIdx(0);
@@ -189,14 +218,18 @@ export function UssdSimulator() {
     if (!crop || !ward) return null;
     const id = tradeId ?? newTradeId();
     if (!tradeId) setTradeId(id);
+    const name =
+      productName.trim() ||
+      (crop.id === "custom" ? crop.en : cropName(crop, "en"));
     const trade: Trade = {
       id,
       farmer: farmerName,
       farmerPhone,
       cropId: crop.id,
+      productName: name,
       qty,
       ward,
-      grade: "A",
+      grade,
       buyerId: partial.buyerId,
       unitPrice: partial.unitPrice,
       totalUsd: partial.totalUsd,
@@ -236,14 +269,35 @@ export function UssdSimulator() {
           t.pickCrop,
           "",
           ...CROPS.map((c, i) => `${i + 1}. ${cropName(c, lang)}`),
+          t.otherProduct,
+          t.back,
+        ];
+      case "custom_name":
+        return [
+          t.enterCustom,
+          "",
+          t.customHint,
+          "",
+          ...CUSTOM_PRESETS.map(
+            (p, i) => `${i + 1}. ${lang === "sn" ? p.sn : p.en}`
+          ),
+          t.back,
+        ];
+      case "grade":
+        return [
+          productName || (crop ? cropName(crop, lang) : ""),
+          t.pickGrade,
+          "",
+          t.gradeA,
+          t.gradeB,
+          t.gradeC,
           t.back,
         ];
       case "qty":
         return [
-          `${cropName(crop!, lang)}`,
+          `${productName || cropName(crop!, lang)} · ${t.gradeLabel} ${grade}`,
           `${t.enterQty} (${cropUnit(crop!, lang)}):`,
           "",
-          t.grade,
           t.back,
         ];
       case "ward":
@@ -260,7 +314,8 @@ export function UssdSimulator() {
           t.localPrices,
           `${ward}`,
           "",
-          `${cropName(c, lang)} · ${cropUnit(c, lang)}`,
+          `${productName || cropName(c, lang)} · ${cropUnit(c, lang)}`,
+          `${t.gradeLabel}: ${grade}`,
           `${t.mid}: ${formatUsd(midPrice(c))}`,
           `${t.range}: ${formatUsd(c.priceMin)}–${formatUsd(c.priceMax)}`,
           `Qty: ${qty}`,
@@ -292,7 +347,7 @@ export function UssdSimulator() {
         return [
           t.accept,
           "",
-          `${cropName(crop!, lang)} × ${qty}`,
+          `${productName || cropName(crop!, lang)} · ${t.gradeLabel} ${grade} × ${qty}`,
           `${ward} → ${b.name}`,
           `${typ}`,
           `${formatUsd(offerPrice)} × ${qty} = ${formatUsd(total)}`,
@@ -340,6 +395,8 @@ export function UssdSimulator() {
     t,
     lang,
     crop,
+    productName,
+    grade,
     qty,
     ward,
     matchedBuyers,
@@ -430,10 +487,62 @@ export function UssdSimulator() {
           setStep("main");
           break;
         }
+        if (val === "6") {
+          setCrop(null);
+          setProductName("");
+          setStep("custom_name");
+          break;
+        }
         {
           const idx = parseInt(val, 10) - 1;
           if (idx >= 0 && idx < CROPS.length) {
-            setCrop(CROPS[idx]);
+            const c = CROPS[idx];
+            setCrop(c);
+            setProductName(cropName(c, "en"));
+            setStep("grade");
+          } else showFlash(t.invalid);
+        }
+        break;
+
+      case "custom_name":
+        if (val === "0") {
+          setStep("crop");
+          break;
+        }
+        {
+          let name = "";
+          const presetIdx = parseInt(val, 10) - 1;
+          if (presetIdx >= 0 && presetIdx < CUSTOM_PRESETS.length) {
+            name =
+              lang === "sn"
+                ? CUSTOM_PRESETS[presetIdx].sn
+                : CUSTOM_PRESETS[presetIdx].en;
+          } else if (val.length >= 2 && !/^\d+$/.test(val)) {
+            name = val;
+          } else if (val.length >= 2) {
+            // typed digits only — treat as invalid for name; ask again
+            showFlash(t.invalid);
+            break;
+          } else {
+            showFlash(t.invalid);
+            break;
+          }
+          const custom = makeCustomCrop(name);
+          setCrop(custom);
+          setProductName(name);
+          setStep("grade");
+        }
+        break;
+
+      case "grade":
+        if (val === "0") {
+          setStep(crop?.id === "custom" ? "custom_name" : "crop");
+          break;
+        }
+        {
+          const idx = parseInt(val, 10) - 1;
+          if (idx >= 0 && idx < GRADES.length) {
+            setGrade(GRADES[idx]);
             setStep("qty");
           } else showFlash(t.invalid);
         }
@@ -441,7 +550,7 @@ export function UssdSimulator() {
 
       case "qty":
         if (val === "0") {
-          setStep("crop");
+          setStep("grade");
           break;
         }
         {
@@ -481,11 +590,13 @@ export function UssdSimulator() {
             agentFeeUsd: 0,
           });
           showFlash(
-            `${t.listed}\n${crop ? cropName(crop, lang) : ""} ${qty} · ${ward}`
+            `${t.listed}\n${productName || (crop ? cropName(crop, lang) : "")} ${t.gradeLabel}${grade} ${qty} · ${ward}`
           );
           setTimeout(() => {
             setFlash(null);
             setCrop(null);
+            setProductName("");
+            setGrade("A");
             setQty(0);
             setWard(null);
             setTradeId(null);
@@ -532,9 +643,12 @@ export function UssdSimulator() {
               farmer: farmerName,
               farmerPhone,
               cropId: crop!.id,
+              productName:
+                productName.trim() ||
+                (crop!.id === "custom" ? crop!.en : cropName(crop!, "en")),
               qty,
               ward: ward!,
-              grade: "A",
+              grade,
               buyerId: selectedBuyer?.id ?? null,
               unitPrice: offerPrice,
               totalUsd: total,
@@ -554,9 +668,12 @@ export function UssdSimulator() {
                 farmer: farmerName,
                 farmerPhone,
                 cropId: crop!.id,
+                productName:
+                  productName.trim() ||
+                  (crop!.id === "custom" ? crop!.en : cropName(crop!, "en")),
                 qty,
                 ward: ward!,
-                grade: "A",
+                grade,
                 buyerId: selectedBuyer?.id ?? null,
                 unitPrice: offerPrice,
                 totalUsd: total,
@@ -575,6 +692,8 @@ export function UssdSimulator() {
       case "done":
         if (val === "1") {
           setCrop(null);
+          setProductName("");
+          setGrade("A");
           setQty(0);
           setWard(null);
           setBuyerIdx(0);
@@ -624,15 +743,32 @@ export function UssdSimulator() {
             <div className="bg-slate-900 px-3 py-2 flex gap-2 items-center">
               <input
                 value={input}
-                onChange={(e) =>
-                  setInput(e.target.value.replace(/[^\d]/g, "").slice(0, 12))
-                }
+                onChange={(e) => {
+                  const allowText =
+                    step === "custom_name" ||
+                    (step === "register" && regMode === "name");
+                  const next = allowText
+                    ? e.target.value.slice(0, 32)
+                    : e.target.value.replace(/[^\d]/g, "").slice(0, 12);
+                  setInput(next);
+                }}
                 onKeyDown={(e) => {
                   if (e.key === "Enter") submit();
                 }}
-                placeholder={step === "idle" ? "*288#" : "Reply…"}
+                placeholder={
+                  step === "idle"
+                    ? "*288#"
+                    : step === "custom_name"
+                      ? "Name or 1–3…"
+                      : "Reply…"
+                }
                 className="flex-1 rounded-md bg-slate-800 px-3 py-2 font-mono text-sm text-emerald-200 placeholder:text-slate-500 outline-none ring-1 ring-slate-700 focus:ring-musika-gold"
-                inputMode="numeric"
+                inputMode={
+                  step === "custom_name" ||
+                  (step === "register" && regMode === "name")
+                    ? "text"
+                    : "numeric"
+                }
                 disabled={step === "payment"}
               />
               <button
@@ -704,8 +840,8 @@ export function UssdSimulator() {
           <h3 className="font-display font-bold text-musika-blue">Booth flow</h3>
           <ol className="mt-3 space-y-2 text-sm text-slate-600 list-decimal list-inside">
             <li>Dial *288# (or tap Dial) → register if needed</li>
-            <li>1 → List produce → pick crop (Shona names available)</li>
-            <li>Enter quantity → choose ward (Madziwa, Bindura, Mazowe, Guruve, Mtoko)</li>
+            <li>1 → List produce → pick crop or <strong>6 Other</strong> (type name / keypad presets)</li>
+            <li>Select grade A/B/C → quantity → ward (Madziwa, Bindura, Mazowe, Guruve, Mtoko)</li>
             <li>
               Review prices → <strong>2 List without match</strong> (agent alert) or pick a
               buyer → Accept → escrow
@@ -716,20 +852,22 @@ export function UssdSimulator() {
 
         <div className="rounded-2xl border border-emerald-200 bg-emerald-50 p-4 text-sm text-emerald-900">
           <strong>Live sync:</strong> listings write to browser key{" "}
-          <code className="text-xs bg-white/80 px-1 rounded">musikalink-zw-v1</code>. Keep
+          <code className="text-xs bg-white/80 px-1 rounded">musikalink-zw-v2</code>. Keep
           Agent or Buyer open in another tab to see alerts without a database.
         </div>
 
-        {(crop || ward || qty > 0) && (
+        {(crop || productName || ward || qty > 0) && (
           <div className="rounded-2xl border border-musika-gold/40 bg-musika-cream p-5">
             <h3 className="font-display font-bold text-musika-blue">Session</h3>
             <dl className="mt-2 grid grid-cols-2 gap-2 text-sm">
               <dt className="text-slate-500">Farmer</dt>
               <dd className="font-semibold">{farmerName}</dd>
-              <dt className="text-slate-500">Crop</dt>
+              <dt className="text-slate-500">Product</dt>
               <dd className="font-semibold">
-                {crop ? cropName(crop, lang) : "—"}
+                {productName || (crop ? cropName(crop, lang) : "—")}
               </dd>
+              <dt className="text-slate-500">Grade</dt>
+              <dd className="font-semibold">{grade}</dd>
               <dt className="text-slate-500">Qty</dt>
               <dd className="font-semibold">{qty || "—"}</dd>
               <dt className="text-slate-500">Ward</dt>

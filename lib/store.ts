@@ -9,18 +9,18 @@ import {
   type TradeStatus,
 } from "@/lib/data";
 
-export const STORAGE_KEY = "musikalink-zw-v1";
+export const STORAGE_KEY = "musikalink-zw-v2";
 export const UPDATE_EVENT = "musikalink-updated";
 
 export type MusikaStore = {
-  version: 1;
+  version: 2;
   trades: Trade[];
   demands: Demand[];
 };
 
 function seedStore(): MusikaStore {
   return {
-    version: 1,
+    version: 2,
     trades: SEED_TRADES.map((t) => ({ ...t })),
     demands: SEED_DEMANDS.map((d) => ({ ...d })),
   };

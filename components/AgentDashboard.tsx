@@ -7,6 +7,7 @@ import {
   WARDS,
   formatUsd,
   getCrop,
+  productLabel,
   type Trade,
   type TradeStatus,
   type Ward,
@@ -31,9 +32,13 @@ const STATUS_STYLE: Record<TradeStatus, string> = {
   paid: "bg-emerald-100 text-emerald-900",
 };
 
-function cropLabel(id: string) {
-  const c = getCrop(id);
-  return c ? `${c.en} (${c.sn})` : id;
+function produceLabel(t: Trade) {
+  const label = productLabel(t);
+  const c = getCrop(t.cropId);
+  if (t.cropId === "custom" || (!c && t.productName)) {
+    return `${label} (custom)`;
+  }
+  return c ? `${c.en} (${c.sn})` : label;
 }
 
 function buyerLabel(id: string | null) {
@@ -43,12 +48,12 @@ function buyerLabel(id: string | null) {
 
 function alertText(t: Trade): string {
   const c = getCrop(t.cropId);
-  const crop = c ? c.en.toLowerCase() : t.cropId;
+  const crop = productLabel(t);
   const qtyLabel =
     c?.id === "maize"
       ? `${t.qty * 50}kg`
-      : `${t.qty} ${c?.unit ?? "units"}`;
-  return `New listing: ${crop} ${qtyLabel} — ${t.ward}`;
+      : `${t.qty} ${c && c.id !== "custom" ? c.unit : "units"}`;
+  return `New listing: ${crop} grade ${t.grade} · ${qtyLabel} — ${t.ward}`;
 }
 
 const DEFAULT_AGENT = AGENTS[0];
@@ -331,8 +336,10 @@ export function AgentDashboard() {
                     <div className="text-xs text-slate-500">{t.farmerPhone}</div>
                   </td>
                   <td className="px-4 py-3">
-                    {cropLabel(t.cropId)}
-                    <div className="text-xs text-slate-500">× {t.qty}</div>
+                    {produceLabel(t)}
+                    <div className="text-xs text-slate-500">
+                      × {t.qty} · Grade {t.grade}
+                    </div>
                   </td>
                   <td className="px-4 py-3 text-slate-700">
                     {buyerLabel(t.buyerId)}
@@ -398,7 +405,7 @@ export function AgentDashboard() {
 
       <div className="flex flex-wrap items-center justify-between gap-3 text-xs text-slate-500">
         <p>
-          Shared store: <code>musikalink-zw-v1</code> — open USSD in another tab to create a
+          Shared store: <code>musikalink-zw-v2</code> — open USSD in another tab to create a
           listing and watch the alert banner.
         </p>
         <button

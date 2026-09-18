@@ -186,14 +186,21 @@ export type TradeStatus =
   | "delivered"
   | "paid";
 
+export type Grade = "A" | "B" | "C";
+
+export const GRADES: Grade[] = ["A", "B", "C"];
+
 export type Trade = {
   id: string;
   farmer: string;
   farmerPhone: string;
+  /** Preset crop id, or "custom" when productName is free-text */
   cropId: string;
+  /** Display name — preset crop EN name or farmer/buyer custom product */
+  productName?: string;
   qty: number;
   ward: Ward;
-  grade: "A" | "B" | "C";
+  grade: Grade;
   buyerId: string | null;
   unitPrice: number;
   totalUsd: number;
@@ -209,9 +216,13 @@ export type Demand = {
   id: string;
   buyerId: string;
   buyerName: string;
+  /** Preset crop id, or "custom" when productName is free-text */
   cropId: string;
+  /** Display name — preset crop EN name or buyer custom product */
+  productName?: string;
   qty: number;
   ward: Ward;
+  grade: Grade;
   priceMax: number;
   status: DemandStatus;
   createdAt: string;
@@ -225,6 +236,7 @@ export const SEED_TRADES: Trade[] = [
     farmer: "Tendai Moyo",
     farmerPhone: "0772 441 203",
     cropId: "maize",
+    productName: "Maize",
     qty: 12,
     ward: "Madziwa",
     grade: "A",
@@ -241,6 +253,7 @@ export const SEED_TRADES: Trade[] = [
     farmer: "Chipo Ncube",
     farmerPhone: "0783 992 110",
     cropId: "groundnuts",
+    productName: "Groundnuts",
     qty: 8,
     ward: "Madziwa",
     grade: "A",
@@ -257,6 +270,7 @@ export const SEED_TRADES: Trade[] = [
     farmer: "Farai Dube",
     farmerPhone: "0712 334 889",
     cropId: "tomatoes",
+    productName: "Tomatoes",
     qty: 20,
     ward: "Bindura",
     grade: "B",
@@ -273,6 +287,7 @@ export const SEED_TRADES: Trade[] = [
     farmer: "Rudo Sibanda",
     farmerPhone: "0778 201 554",
     cropId: "beans",
+    productName: "Beans",
     qty: 6,
     ward: "Mazowe",
     grade: "A",
@@ -289,6 +304,7 @@ export const SEED_TRADES: Trade[] = [
     farmer: "Tapiwa Chirwa",
     farmerPhone: "0734 667 021",
     cropId: "maize",
+    productName: "Maize",
     qty: 25,
     ward: "Guruve",
     grade: "B",
@@ -305,6 +321,7 @@ export const SEED_TRADES: Trade[] = [
     farmer: "Nyaradzo Gumbo",
     farmerPhone: "0775 118 440",
     cropId: "cabbage",
+    productName: "Cabbage",
     qty: 100,
     ward: "Mtoko",
     grade: "A",
@@ -324,8 +341,10 @@ export const SEED_DEMANDS: Demand[] = [
     buyerId: "b2",
     buyerName: "Madziwa School Feeding",
     cropId: "maize",
+    productName: "Maize",
     qty: 40,
     ward: "Madziwa",
+    grade: "A",
     priceMax: 10.5,
     status: "open",
     createdAt: "2026-09-16T09:00:00+02:00",
@@ -335,8 +354,10 @@ export const SEED_DEMANDS: Demand[] = [
     buyerId: "b6",
     buyerName: "Kariba Lakeside Hotel",
     cropId: "tomatoes",
+    productName: "Tomatoes",
     qty: 30,
     ward: "Mazowe",
+    grade: "A",
     priceMax: 8.5,
     status: "open",
     createdAt: "2026-09-16T12:30:00+02:00",
@@ -346,8 +367,10 @@ export const SEED_DEMANDS: Demand[] = [
     buyerId: "b7",
     buyerName: "Harare Relief NGO",
     cropId: "beans",
+    productName: "Beans",
     qty: 20,
     ward: "Bindura",
+    grade: "B",
     priceMax: 17,
     status: "open",
     createdAt: "2026-09-17T08:15:00+02:00",
@@ -372,6 +395,47 @@ export function formatUsd(n: number): string {
 
 export function getCrop(id: string): Crop | undefined {
   return CROPS.find((c) => c.id === id);
+}
+
+/** Synthetic crop row for free-text / custom products */
+export function makeCustomCrop(name: string): Crop {
+  const trimmed = name.trim() || "Custom product";
+  return {
+    id: "custom",
+    en: trimmed,
+    sn: trimmed,
+    unit: "unit",
+    unitSn: "unit",
+    priceMin: 5,
+    priceMax: 12,
+    unitPrice: "USD / unit",
+  };
+}
+
+/** Resolve display name for a trade or demand (custom or preset). */
+export function productLabel(
+  item: { cropId: string; productName?: string },
+  lang: Lang = "en"
+): string {
+  if (item.productName && item.productName.trim()) {
+    return item.productName.trim();
+  }
+  const c = getCrop(item.cropId);
+  if (c) return cropName(c, lang);
+  return item.cropId;
+}
+
+/** Flexible product match by crop id or case-insensitive name. */
+export function productsMatch(
+  a: { cropId: string; productName?: string },
+  b: { cropId: string; productName?: string }
+): boolean {
+  if (a.cropId && b.cropId && a.cropId === b.cropId && a.cropId !== "custom") {
+    return true;
+  }
+  const nameA = productLabel(a, "en").toLowerCase().trim();
+  const nameB = productLabel(b, "en").toLowerCase().trim();
+  return nameA.length > 0 && nameA === nameB;
 }
 
 export function agentForWard(ward: Ward) {

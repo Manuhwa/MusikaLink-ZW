@@ -4,12 +4,16 @@ import { useMemo, useState, type FormEvent } from "react";
 import {
   BUYERS,
   CROPS,
+  GRADES,
   WARDS,
   formatUsd,
   getCrop,
   midPrice,
   newDemandId,
+  productLabel,
+  productsMatch,
   type Demand,
+  type Grade,
   type Trade,
   type Ward,
 } from "@/lib/data";
@@ -28,6 +32,8 @@ export function BuyerPortal() {
 
   // Post demand form
   const [dCrop, setDCrop] = useState(CROPS[0].id);
+  const [dCustomName, setDCustomName] = useState("");
+  const [dGrade, setDGrade] = useState<Grade>("A");
   const [dQty, setDQty] = useState(20);
   const [dWard, setDWard] = useState<Ward>("Madziwa");
   const [dPrice, setDPrice] = useState(midPrice(CROPS[0]));
@@ -38,7 +44,16 @@ export function BuyerPortal() {
     return trades.filter((t) => {
       if (t.status !== "listed" && t.status !== "matched") return false;
       if (wardFilter !== "all" && t.ward !== wardFilter) return false;
-      if (cropFilter !== "all" && t.cropId !== cropFilter) return false;
+      if (cropFilter !== "all") {
+        if (cropFilter === "custom") {
+          if (t.cropId !== "custom") return false;
+        } else if (
+          !productsMatch(t, { cropId: cropFilter }) &&
+          t.cropId !== cropFilter
+        ) {
+          return false;
+        }
+      }
       return true;
     });
   }, [trades, wardFilter, cropFilter]);
@@ -73,8 +88,9 @@ export function BuyerPortal() {
         : trade.unitPrice;
     const result = matchListingToBuyer(trade.id, buyerId, unit);
     if (result) {
+      const label = productLabel(trade);
       flash(
-        `Matched ${trade.id} · escrow ${formatUsd(Math.round(unit * trade.qty * 100) / 100)} held from ${buyer.wallet}`
+        `Matched ${trade.id} (${label}, grade ${trade.grade}) · escrow ${formatUsd(Math.round(unit * trade.qty * 100) / 100)} held from ${buyer.wallet}`
       );
     } else {
       flash("Could not match — listing may already be taken.");
@@ -83,23 +99,39 @@ export function BuyerPortal() {
 
   function postDemand(e: FormEvent) {
     e.preventDefault();
+    const isCustom = dCrop === "custom";
+    const custom = dCustomName.trim();
+    if (isCustom && custom.length < 2) {
+      flash("Enter a custom product name (Other…).");
+      return;
+    }
+    const preset = getCrop(dCrop);
+    const name = isCustom ? custom : preset?.en ?? dCrop;
     const demand: Demand = {
       id: newDemandId(),
       buyerId: buyer.id,
       buyerName: buyer.name,
-      cropId: dCrop,
+      cropId: isCustom ? "custom" : dCrop,
+      productName: name,
       qty: dQty,
       ward: dWard,
+      grade: dGrade,
       priceMax: dPrice,
       status: "open",
       createdAt: new Date().toISOString(),
     };
     addDemand(demand);
-    flash(`Demand ${demand.id} posted — visible to agents & matching farmers.`);
+    flash(
+      `Demand ${demand.id} posted (${name}, grade ${dGrade}) — visible to agents & matching farmers.`
+    );
   }
 
   function onCropChange(id: string) {
     setDCrop(id);
+    if (id === "custom") {
+      if (!dCustomName) setDPrice(8);
+      return;
+    }
     const c = getCrop(id);
     if (c) setDPrice(midPrice(c));
   }
@@ -178,12 +210,13 @@ export function BuyerPortal() {
                 onChange={(e) => setCropFilter(e.target.value)}
                 className="rounded-full border border-musika-blue/20 px-3 py-1 text-xs font-semibold"
               >
-                <option value="all">All crops</option>
+                <option value="all">All products</option>
                 {CROPS.map((c) => (
                   <option key={c.id} value={c.id}>
                     {c.en}
                   </option>
                 ))}
+                <option value="custom">Other / custom</option>
               </select>
             </div>
           </div>
@@ -200,6 +233,8 @@ export function BuyerPortal() {
             <ul className="space-y-3">
               {available.map((t) => {
                 const c = getCrop(t.cropId);
+                const label = productLabel(t);
+                const isCustom = t.cropId === "custom" || (!c && !!t.productName);
                 return (
                   <li
                     key={t.id}
@@ -210,12 +245,22 @@ export function BuyerPortal() {
                         {t.id}
                       </p>
                       <p className="font-display font-bold text-musika-blue">
-                        {c ? `${c.en} (${c.sn})` : t.cropId} × {t.qty}
+                        {isCustom
+                          ? label
+                          : c
+                            ? `${c.en} (${c.sn})`
+                            : label}{" "}
+                        × {t.qty}
+                        {isCustom ? (
+                          <span className="ml-2 rounded-full bg-violet-100 px-2 py-0.5 text-[10px] font-bold uppercase text-violet-800">
+                            Custom
+                          </span>
+                        ) : null}
                       </p>
                       <p className="text-sm text-slate-600">
                         {t.farmer} · {t.ward} · Grade {t.grade} · ask{" "}
                         {formatUsd(t.unitPrice)}
-                        {c ? ` / ${c.unit}` : ""}
+                        {c && c.id !== "custom" ? ` / ${c.unit}` : " / unit"}
                       </p>
                       <p className="text-xs text-slate-500 mt-0.5">
                         Total ask {formatUsd(t.totalUsd)}
@@ -248,7 +293,7 @@ export function BuyerPortal() {
                   >
                     <span>
                       <span className="font-mono font-semibold">{t.id}</span> —{" "}
-                      {getCrop(t.cropId)?.en} × {t.qty} · {t.ward}
+                      {productLabel(t)} (grade {t.grade}) × {t.qty} · {t.ward}
                     </span>
                     <span className="font-semibold text-musika-blue">
                       {formatUsd(t.totalUsd)} · {t.status}
@@ -271,7 +316,7 @@ export function BuyerPortal() {
             </p>
             <form onSubmit={postDemand} className="mt-4 space-y-3">
               <label className="block text-sm">
-                <span className="font-semibold text-slate-600">Crop</span>
+                <span className="font-semibold text-slate-600">Product</span>
                 <select
                   value={dCrop}
                   onChange={(e) => onCropChange(e.target.value)}
@@ -280,6 +325,38 @@ export function BuyerPortal() {
                   {CROPS.map((c) => (
                     <option key={c.id} value={c.id}>
                       {c.en} ({c.sn})
+                    </option>
+                  ))}
+                  <option value="custom">Other…</option>
+                </select>
+              </label>
+              {dCrop === "custom" && (
+                <label className="block text-sm">
+                  <span className="font-semibold text-slate-600">
+                    Custom product name
+                  </span>
+                  <input
+                    type="text"
+                    value={dCustomName}
+                    onChange={(e) => setDCustomName(e.target.value)}
+                    placeholder="e.g. Sweet potato, onions…"
+                    className="mt-1 w-full rounded-lg border border-musika-blue/20 px-3 py-2"
+                    required
+                    minLength={2}
+                  />
+                </label>
+              )}
+              <label className="block text-sm">
+                <span className="font-semibold text-slate-600">Grade</span>
+                <select
+                  value={dGrade}
+                  onChange={(e) => setDGrade(e.target.value as Grade)}
+                  className="mt-1 w-full rounded-lg border border-musika-blue/20 px-3 py-2"
+                >
+                  {GRADES.map((g) => (
+                    <option key={g} value={g}>
+                      Grade {g}
+                      {g === "A" ? " (Good)" : g === "B" ? " (Fair)" : " (Poor)"}
                     </option>
                   ))}
                 </select>
@@ -337,7 +414,8 @@ export function BuyerPortal() {
             </h3>
             <ul className="mt-3 space-y-2">
               {openDemands.map((d) => {
-                const c = getCrop(d.cropId);
+                const label = productLabel(d);
+                const isCustom = d.cropId === "custom";
                 return (
                   <li
                     key={d.id}
@@ -347,7 +425,9 @@ export function BuyerPortal() {
                       {d.id}
                     </span>
                     <p className="font-semibold text-musika-blue">
-                      {c?.en} × {d.qty} · {d.ward}
+                      {label}
+                      {isCustom ? " (custom)" : ""} · grade {d.grade} × {d.qty} ·{" "}
+                      {d.ward}
                     </p>
                     <p className="text-xs text-slate-600">
                       {d.buyerName} · max {formatUsd(d.priceMax)}
