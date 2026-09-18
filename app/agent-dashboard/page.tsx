@@ -11,8 +11,10 @@ export default function AgentDashboardPage() {
           Agent Dashboard
         </h1>
         <p className="mt-3 text-slate-600 leading-relaxed">
-          Ward-level view for youth / women-led aggregation points: inbound farmer lots,
-          buyer orders, delivery confirmation, and escrow release to mobile money.
+          Ward-level view for youth / women-led aggregation points. Agents are{" "}
+          <strong>linked by ward assignment</strong>: when a farmer lists via USSD, a live alert
+          appears here. Filter by ward or status, mark delivered, and release escrow to farmer
+          wallets.
         </p>
       </div>
       <AgentDashboard />

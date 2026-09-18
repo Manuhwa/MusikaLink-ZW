@@ -18,7 +18,7 @@ export type Crop = {
   unitSn: string;
   priceMin: number;
   priceMax: number;
-  unitPrice: string; // USD per unit label
+  unitPrice: string;
 };
 
 export const CROPS: Crop[] = [
@@ -80,7 +80,8 @@ export type Buyer = {
   type: string;
   typeSn: string;
   ward: Ward;
-  offerPremium: number; // fraction above mid price
+  offerPremium: number;
+  wallet: string;
 };
 
 export const BUYERS: Buyer[] = [
@@ -91,14 +92,16 @@ export const BUYERS: Buyer[] = [
     typeSn: "Mugadziri",
     ward: "Bindura",
     offerPremium: 0.05,
+    wallet: "EcoCash · 0772 100 201",
   },
   {
     id: "b2",
     name: "Madziwa School Feeding",
-    type: "Institution",
-    typeSn: "Sangano",
+    type: "School feeding",
+    typeSn: "Chikafu chechikoro",
     ward: "Madziwa",
     offerPremium: 0.02,
+    wallet: "EcoCash · 0773 220 110",
   },
   {
     id: "b3",
@@ -107,6 +110,7 @@ export const BUYERS: Buyer[] = [
     typeSn: "Mutengesi",
     ward: "Mazowe",
     offerPremium: 0.08,
+    wallet: "OneMoney · 0712 445 880",
   },
   {
     id: "b4",
@@ -115,6 +119,7 @@ export const BUYERS: Buyer[] = [
     typeSn: "Mutengi",
     ward: "Guruve",
     offerPremium: 0.03,
+    wallet: "Telecash · 0733 991 040",
   },
   {
     id: "b5",
@@ -123,8 +128,55 @@ export const BUYERS: Buyer[] = [
     typeSn: "Muunganidzi",
     ward: "Mtoko",
     offerPremium: 0.06,
+    wallet: "EcoCash · 0782 334 567",
+  },
+  {
+    id: "b6",
+    name: "Kariba Lakeside Hotel",
+    type: "Hotel",
+    typeSn: "Hotera",
+    ward: "Mazowe",
+    offerPremium: 0.1,
+    wallet: "EcoCash · 0771 608 912",
+  },
+  {
+    id: "b7",
+    name: "Harare Relief NGO",
+    type: "NGO",
+    typeSn: "Sangano",
+    ward: "Bindura",
+    offerPremium: 0.04,
+    wallet: "EcoCash · 0775 201 333",
   },
 ];
+
+/** Ward agents — linked by ward assignment */
+export const AGENTS = [
+  {
+    id: "a1",
+    name: "Nyasha Chirume",
+    hub: "Madziwa Hub",
+    wards: ["Madziwa", "Bindura"] as Ward[],
+    phone: "0772 880 441",
+    wallet: "EcoCash · 0772 880 441",
+  },
+  {
+    id: "a2",
+    name: "Tafadzwa Ndlovu",
+    hub: "Mazowe Aggregation",
+    wards: ["Mazowe", "Guruve"] as Ward[],
+    phone: "0783 112 209",
+    wallet: "OneMoney · 0783 112 209",
+  },
+  {
+    id: "a3",
+    name: "Blessing Mutasa",
+    hub: "Mtoko Desk",
+    wards: ["Mtoko"] as Ward[],
+    phone: "0715 443 778",
+    wallet: "Telecash · 0715 443 778",
+  },
+] as const;
 
 export type TradeStatus =
   | "listed"
@@ -148,9 +200,25 @@ export type Trade = {
   status: TradeStatus;
   listedAt: string;
   agentFeeUsd: number;
+  source?: "seed" | "ussd" | "buyer";
 };
 
-/** Seed trades for the agent dashboard demo */
+export type DemandStatus = "open" | "matched" | "closed";
+
+export type Demand = {
+  id: string;
+  buyerId: string;
+  buyerName: string;
+  cropId: string;
+  qty: number;
+  ward: Ward;
+  priceMax: number;
+  status: DemandStatus;
+  createdAt: string;
+  matchedTradeId?: string;
+};
+
+/** Seed trades for first-load demo */
 export const SEED_TRADES: Trade[] = [
   {
     id: "ML-2401",
@@ -166,6 +234,7 @@ export const SEED_TRADES: Trade[] = [
     status: "escrow",
     listedAt: "2026-09-15T08:12:00+02:00",
     agentFeeUsd: 1.8,
+    source: "seed",
   },
   {
     id: "ML-2402",
@@ -181,6 +250,7 @@ export const SEED_TRADES: Trade[] = [
     status: "in_transit",
     listedAt: "2026-09-15T10:40:00+02:00",
     agentFeeUsd: 1.7,
+    source: "seed",
   },
   {
     id: "ML-2403",
@@ -196,6 +266,7 @@ export const SEED_TRADES: Trade[] = [
     status: "delivered",
     listedAt: "2026-09-14T14:05:00+02:00",
     agentFeeUsd: 2.1,
+    source: "seed",
   },
   {
     id: "ML-2404",
@@ -211,6 +282,7 @@ export const SEED_TRADES: Trade[] = [
     status: "paid",
     listedAt: "2026-09-13T09:22:00+02:00",
     agentFeeUsd: 1.4,
+    source: "seed",
   },
   {
     id: "ML-2405",
@@ -226,6 +298,7 @@ export const SEED_TRADES: Trade[] = [
     status: "listed",
     listedAt: "2026-09-16T16:30:00+02:00",
     agentFeeUsd: 0,
+    source: "seed",
   },
   {
     id: "ML-2406",
@@ -241,6 +314,43 @@ export const SEED_TRADES: Trade[] = [
     status: "escrow",
     listedAt: "2026-09-16T11:15:00+02:00",
     agentFeeUsd: 0.8,
+    source: "seed",
+  },
+];
+
+export const SEED_DEMANDS: Demand[] = [
+  {
+    id: "DM-101",
+    buyerId: "b2",
+    buyerName: "Madziwa School Feeding",
+    cropId: "maize",
+    qty: 40,
+    ward: "Madziwa",
+    priceMax: 10.5,
+    status: "open",
+    createdAt: "2026-09-16T09:00:00+02:00",
+  },
+  {
+    id: "DM-102",
+    buyerId: "b6",
+    buyerName: "Kariba Lakeside Hotel",
+    cropId: "tomatoes",
+    qty: 30,
+    ward: "Mazowe",
+    priceMax: 8.5,
+    status: "open",
+    createdAt: "2026-09-16T12:30:00+02:00",
+  },
+  {
+    id: "DM-103",
+    buyerId: "b7",
+    buyerName: "Harare Relief NGO",
+    cropId: "beans",
+    qty: 20,
+    ward: "Bindura",
+    priceMax: 17,
+    status: "open",
+    createdAt: "2026-09-17T08:15:00+02:00",
   },
 ];
 
@@ -258,4 +368,20 @@ export function midPrice(crop: Crop): number {
 
 export function formatUsd(n: number): string {
   return `$${n.toFixed(2)}`;
+}
+
+export function getCrop(id: string): Crop | undefined {
+  return CROPS.find((c) => c.id === id);
+}
+
+export function agentForWard(ward: Ward) {
+  return AGENTS.find((a) => (a.wards as readonly string[]).includes(ward)) ?? AGENTS[0];
+}
+
+export function newTradeId(): string {
+  return `ML-${Date.now().toString().slice(-6)}`;
+}
+
+export function newDemandId(): string {
+  return `DM-${Date.now().toString().slice(-5)}`;
 }

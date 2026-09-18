@@ -21,15 +21,48 @@ const barriers = [
 
 const steps = [
   { n: "1", title: "Dial *288#", body: "List crop, quantity, grade & ward on any GSM phone." },
-  { n: "2", title: "See local prices", body: "Indicative prices from recent trades — not one opaque offer." },
-  { n: "3", title: "Match a buyer", body: "Verified traders, processors, schools & NGOs." },
+  { n: "2", title: "Ward agent linked", body: "Listing routes to the aggregation agent for that ward." },
+  { n: "3", title: "Match a buyer", body: "Verified traders, processors, schools, hotels & NGOs." },
   { n: "4", title: "Escrow → EcoCash", body: "Funds held until delivery; released to mobile money." },
+];
+
+const roles = [
+  {
+    href: "/ussd-demo",
+    eyebrow: "Farmer",
+    title: "USSD Simulator (*288#)",
+    body: "List produce → local prices → buyer match → escrow → EcoCash-style confirmation. English ↔ Shona. Listings sync to Agent & Buyer.",
+    style: "bg-musika-blue text-white",
+    eyebrowClass: "text-musika-gold-light",
+    linkClass: "text-musika-gold",
+  },
+  {
+    href: "/agent-dashboard",
+    eyebrow: "Ward agent",
+    title: "Agent Dashboard",
+    body: "Live alerts for new listings, filter by ward/status, mark delivered, release escrow. Agents linked by ward assignment.",
+    style: "border-2 border-musika-gold bg-white",
+    eyebrowClass: "text-musika-gold-dark",
+    titleClass: "text-musika-blue",
+    bodyClass: "text-slate-600",
+    linkClass: "text-musika-blue",
+  },
+  {
+    href: "/buyer",
+    eyebrow: "Buyer",
+    title: "Buyer portal",
+    body: "Browse available lots, post demand, accept & match into escrow. Traders, school feeding, hotels, NGOs.",
+    style: "border-2 border-musika-blue/20 bg-white",
+    eyebrowClass: "text-musika-blue",
+    titleClass: "text-musika-blue",
+    bodyClass: "text-slate-600",
+    linkClass: "text-musika-blue",
+  },
 ];
 
 export default function HomePage() {
   return (
     <div>
-      {/* Hero */}
       <section className="relative overflow-hidden bg-gradient-to-br from-musika-blue-dark via-musika-blue to-musika-blue-light text-white">
         <div
           className="absolute inset-0 opacity-20"
@@ -56,19 +89,30 @@ export default function HomePage() {
               href="/ussd-demo"
               className="inline-flex items-center justify-center rounded-full bg-musika-gold px-6 py-3 font-display font-bold text-musika-blue-dark shadow-lg hover:bg-musika-gold-light transition-colors"
             >
-              Try USSD Demo (*288#)
+              Farmer (USSD)
             </Link>
             <Link
               href="/agent-dashboard"
               className="inline-flex items-center justify-center rounded-full bg-white/10 px-6 py-3 font-display font-bold text-white ring-1 ring-white/30 hover:bg-white/20 transition-colors"
             >
-              Agent Dashboard
+              Agent
+            </Link>
+            <Link
+              href="/buyer"
+              className="inline-flex items-center justify-center rounded-full bg-white/10 px-6 py-3 font-display font-bold text-white ring-1 ring-white/30 hover:bg-white/20 transition-colors"
+            >
+              Buyer
+            </Link>
+            <Link
+              href="/how-it-works"
+              className="inline-flex items-center justify-center rounded-full px-6 py-3 font-display font-bold text-musika-gold-light hover:text-white transition-colors"
+            >
+              How it works →
             </Link>
           </div>
         </div>
       </section>
 
-      {/* Problem */}
       <section className="mx-auto max-w-6xl px-4 py-14">
         <h2 className="font-display text-2xl sm:text-3xl font-bold text-musika-blue">
           The critical problem
@@ -92,16 +136,25 @@ export default function HomePage() {
         </div>
       </section>
 
-      {/* How it works */}
       <section className="bg-white border-y border-musika-blue/10">
         <div className="mx-auto max-w-6xl px-4 py-14">
-          <h2 className="font-display text-2xl sm:text-3xl font-bold text-musika-blue">
-            How it works
-          </h2>
-          <p className="mt-2 text-slate-600 max-w-2xl">
-            Inclusive by design: works on basic GSM (USSD/SMS), English & Shona menus, escrow
-            until delivery confirmed.
-          </p>
+          <div className="flex flex-wrap items-end justify-between gap-4">
+            <div>
+              <h2 className="font-display text-2xl sm:text-3xl font-bold text-musika-blue">
+                How it works
+              </h2>
+              <p className="mt-2 text-slate-600 max-w-2xl">
+                Inclusive by design: works on basic GSM (USSD/SMS), English & Shona menus,
+                escrow until delivery confirmed.
+              </p>
+            </div>
+            <Link
+              href="/how-it-works"
+              className="text-sm font-bold text-musika-blue hover:underline"
+            >
+              Agent linkage explained →
+            </Link>
+          </div>
           <ol className="mt-8 grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
             {steps.map((s) => (
               <li
@@ -119,50 +172,42 @@ export default function HomePage() {
         </div>
       </section>
 
-      {/* Demo CTAs */}
       <section className="mx-auto max-w-6xl px-4 py-14">
         <h2 className="font-display text-2xl sm:text-3xl font-bold text-musika-blue">
           Live booth demos
         </h2>
-        <div className="mt-6 grid gap-6 md:grid-cols-2">
-          <Link
-            href="/ussd-demo"
-            className="group rounded-2xl bg-musika-blue p-6 text-white shadow-md hover:bg-musika-blue-light transition-colors"
-          >
-            <p className="text-musika-gold-light text-sm font-semibold uppercase tracking-wide">
-              Feature phone
-            </p>
-            <h3 className="mt-1 font-display text-xl font-bold">USSD Simulator (*288#)</h3>
-            <p className="mt-2 text-blue-100 text-sm leading-relaxed">
-              List produce → local prices → buyer match → escrow → EcoCash-style confirmation.
-              Toggle English ↔ Shona.
-            </p>
-            <span className="mt-4 inline-block text-musika-gold font-semibold group-hover:underline">
-              Open simulator →
-            </span>
-          </Link>
-          <Link
-            href="/agent-dashboard"
-            className="group rounded-2xl border-2 border-musika-gold bg-white p-6 shadow-md hover:border-musika-gold-dark transition-colors"
-          >
-            <p className="text-musika-gold-dark text-sm font-semibold uppercase tracking-wide">
-              Aggregation point
-            </p>
-            <h3 className="mt-1 font-display text-xl font-bold text-musika-blue">
-              Agent Dashboard
-            </h3>
-            <p className="mt-2 text-slate-600 text-sm leading-relaxed">
-              Ward agent view: inbound lots, stats, mark delivered, release escrow to farmer
-              wallets.
-            </p>
-            <span className="mt-4 inline-block text-musika-blue font-semibold group-hover:underline">
-              Open dashboard →
-            </span>
-          </Link>
+        <div className="mt-6 grid gap-6 md:grid-cols-3">
+          {roles.map((r) => (
+            <Link
+              key={r.href}
+              href={r.href}
+              className={`group rounded-2xl p-6 shadow-md transition-colors hover:opacity-95 ${r.style}`}
+            >
+              <p
+                className={`text-sm font-semibold uppercase tracking-wide ${r.eyebrowClass}`}
+              >
+                {r.eyebrow}
+              </p>
+              <h3
+                className={`mt-1 font-display text-xl font-bold ${r.titleClass ?? "text-white"}`}
+              >
+                {r.title}
+              </h3>
+              <p
+                className={`mt-2 text-sm leading-relaxed ${r.bodyClass ?? "text-blue-100"}`}
+              >
+                {r.body}
+              </p>
+              <span
+                className={`mt-4 inline-block font-semibold group-hover:underline ${r.linkClass}`}
+              >
+                Open →
+              </span>
+            </Link>
+          ))}
         </div>
       </section>
 
-      {/* Pitch strip */}
       <section className="bg-musika-blue-dark text-white">
         <div className="mx-auto max-w-6xl px-4 py-10">
           <blockquote className="font-display text-lg sm:text-xl font-semibold leading-relaxed text-balance max-w-4xl">

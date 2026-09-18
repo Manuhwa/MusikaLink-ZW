@@ -8,12 +8,14 @@ export default function UssdDemoPage() {
           Feature-phone demo
         </p>
         <h1 className="mt-1 font-display text-3xl font-extrabold text-musika-blue">
-          USSD Simulator — *288#
+          Farmer USSD — *288#
         </h1>
         <p className="mt-3 text-slate-600 leading-relaxed">
-          Interactive mock of the MusikaLink short code. List produce, see ward-level prices,
-          accept a buyer match, hold funds in escrow, then confirm an EcoCash-style payout.
-          Toggle English ↔ Shona for booth visitors.
+          Interactive mock of the MusikaLink short code. Register, list produce, see ward-level
+          prices, accept a buyer match (or list without match), hold funds in escrow, then
+          confirm an EcoCash-style payout. Listings persist to the shared browser store so the{" "}
+          <strong>Agent</strong> and <strong>Buyer</strong> pages update live. Toggle English ↔
+          Shona for booth visitors.
         </p>
       </div>
       <UssdSimulator />
