@@ -4,6 +4,11 @@ USSD-first farm-to-market marketplace demo for **POTRAZ Innovation EXPO 2026** (
 
 Smallholders list produce on feature phones (`*288#`), see local prices, match verified buyers, and get paid via mobile-money escrow — with ward aggregation agents to batch loads.
 
+## Live demo
+
+- **GitHub Pages (permanent, free):** https://manuhwa.github.io/MusikaLink-ZW/
+- **Source:** https://github.com/Manuhwa/MusikaLink-ZW
+
 ## Quick start
 
 ```bash
